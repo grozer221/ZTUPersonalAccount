@@ -1,15 +1,14 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
 using Telegram.Bot.Types;
-using ZTUPersonalAccount.CallbackQueries;
 
-namespace ZTUPersonalAccount.CommandFactory
+namespace ZTUPersonalAccount.CallbackQueries
 {
-    public class TelegramCallbackQueryFactory
+    public class CallbackQueryFactory
     {
         private readonly IServiceProvider _serviceProvider;
 
-        public TelegramCallbackQueryFactory(IServiceProvider serviceProvider)
+        public CallbackQueryFactory(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider;
         }

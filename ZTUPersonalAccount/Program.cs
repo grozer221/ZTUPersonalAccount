@@ -10,9 +10,10 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using ZTUPersonalAccount.CallbackQueries;
 using ZTUPersonalAccount.Client;
-using ZTUPersonalAccount.CommandFactory;
 using ZTUPersonalAccount.Commands;
 using ZTUPersonalAccount.Repositories;
+using ZTUPersonalAccount.States;
+using ZTUPersonalAccount.States.LoginState;
 
 namespace ZTUPersonalAccount
 {
@@ -22,8 +23,9 @@ namespace ZTUPersonalAccount
 
         public static TelegramClient TelegramClient { get; set; }
         public static ITelegramBotClient TelegramBotClient { get; set; }
-        public static TelegramCommandFactory TelegramCommandFactory { get; set; }
-        public static TelegramCallbackQueryFactory TelegramCallbackQueryFactory { get; set; }
+        public static CommandFactory CommandFactory { get; set; }
+        public static CallbackQueryFactory CallbackQueryFactory { get; set; }
+        public static StateFactory StateFactory { get; set; }
 
         public static async Task Main()
         {
@@ -38,8 +40,9 @@ namespace ZTUPersonalAccount
                                              HandleErrorAsync,
                                              new() { AllowedUpdates = { } });
 
-            TelegramCommandFactory = Services.GetRequiredService<TelegramCommandFactory>();
-            TelegramCallbackQueryFactory = Services.GetRequiredService<TelegramCallbackQueryFactory>();
+            CommandFactory = Services.GetRequiredService<CommandFactory>();
+            CallbackQueryFactory = Services.GetRequiredService<CallbackQueryFactory>();
+            StateFactory = Services.GetRequiredService<StateFactory>();
 
             User me = await TelegramBotClient.GetMeAsync();
             Console.WriteLine($"Start listening for @{me.Username}");
@@ -51,13 +54,15 @@ namespace ZTUPersonalAccount
             Services = new ServiceCollection()
                 .AddSingleton<TelegramClient>()
 
+                // Commands
+                .AddSingleton<CommandFactory>()
 
-                .AddSingleton<TelegramCommandFactory>()
-
+                .AddSingleton<LoginCommand>()
+                .AddSingleton<NotFoundCommand>()
                 .AddSingleton<StartCommand>()
-                
 
-                .AddSingleton<TelegramCallbackQueryFactory>()
+                // CallbackQueries
+                .AddSingleton<CallbackQueryFactory>()
 
                 .AddSingleton<ProfileCallbackQuery>()
                 .AddSingleton<BackCallbackQuery>()
@@ -68,10 +73,19 @@ namespace ZTUPersonalAccount
                 .AddSingleton<TommorowCallbackQuery>()
                 .AddSingleton<TwoWeeksCallbackQuery>()
 
+                // States
+                .AddSingleton<StateFactory>()
 
+                .AddSingleton<NotFoundState>()
+
+                .AddSingleton<LoginSubmitState>()
+                .AddSingleton<WriteUserNameState>()
+                .AddSingleton<WritePasswordState>()
+
+                // DB
                 .AddDbContext<AppDBContext>(options => options.UseMySQL(AppDBContext.GetConnectionString()))
                 .AddSingleton<ChatRepository>()
-                //.AddHttpClient()
+                .AddSingleton<PersonalAccountRepository>()
                 .BuildServiceProvider();
         }
 
@@ -105,13 +119,27 @@ namespace ZTUPersonalAccount
             if (message.Type != MessageType.Text)
                 return;
 
-            await TelegramCommandFactory.CreateCommand(message).ExecuteAsync(message);
+            string state = StateFactory.GetState(message.Chat.Id);
+            if (string.IsNullOrEmpty(state))
+                await CommandFactory.CreateCommand(message).ExecuteAsync(message);
+            else
+            {
+                IState nextState = StateFactory.Next(message.Chat.Id);
+                if(nextState != null)
+                {
+                    await StateFactory.CreateState(nextState.GetName()).ExecuteAsync(message);
+                }
+                else
+                {
+                    await CommandFactory.CreateCommand(message).ExecuteAsync(message);
+                }
+            }
         }
 
         private static async Task BotOnCallbackQueryReceived(ITelegramBotClient botClient, CallbackQuery callbackQuery)
         {
             await botClient.EditMessageReplyMarkupAsync(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
-            await TelegramCallbackQueryFactory.CreateCallbackQuery(callbackQuery).ExecuteAsync(callbackQuery);
+            await CallbackQueryFactory.CreateCallbackQuery(callbackQuery).ExecuteAsync(callbackQuery);
 
                 //await botClient.SendTextMessageAsync(callbackQuery.Message.Chat.Id, "Помилка CallbackQuery");
         }

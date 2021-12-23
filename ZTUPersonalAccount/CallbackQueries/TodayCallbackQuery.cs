@@ -21,6 +21,7 @@ namespace ZTUPersonalAccount.CallbackQueries
 
         public async Task ExecuteAsync(CallbackQuery callbackQuery)
         {
+
             await _telegramBotClient.SendTextMessageAsync(callbackQuery.Message.Chat.Id, "Schedule for today");
             await _startCommand.ExecuteAsync(callbackQuery.Message);
         }

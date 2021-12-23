@@ -1,5 +1,4 @@
-﻿
-namespace ZTUPersonalAccount.Models
+﻿namespace ZTUPersonalAccount.Models
 {
     public enum Role
     {

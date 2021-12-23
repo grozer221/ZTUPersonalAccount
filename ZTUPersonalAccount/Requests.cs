@@ -1,40 +1,50 @@
-﻿using AngleSharp;
-using AngleSharp.Dom;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
+using ZTUPersonalAccount.ViewModels;
 
 namespace ZTUPersonalAccount
 {
     public class Requests
     {
-        public const string LoginPersonalAccount = "https://cabinet.ztu.edu.ua/site/login";
+        public const string LoginPersonalAccountUrl = "https://cabinet.ztu.edu.ua/site/login";
+        public const string RozkladGroupUrl = "https://rozklad.ztu.edu.ua/schedule/group/";
+
 
         private static HttpClient httpClient = new HttpClient();
-        private static IConfiguration config = Configuration.Default.WithDefaultLoader();
 
-        public static async Task<IEnumerable<string>> LoginInPersonalAccount()
+        public static async Task<IEnumerable<string>> LoginInPersonalAccount(string userName, string password)
         {
-            HttpResponseMessage loginGetResponse = await httpClient.GetAsync(LoginPersonalAccount);
+            HttpResponseMessage loginGetResponse = await httpClient.GetAsync(LoginPersonalAccountUrl);
             string loginGetResponseText = await loginGetResponse.Content.ReadAsStringAsync();
-            IBrowsingContext context = BrowsingContext.New(config);
-            IDocument document = await context.OpenAsync(req => req.Content(loginGetResponseText));
-            string _csrf_frontend = document.QuerySelector("input[name=\"_csrf-frontend\"]").GetAttribute("value");
+            string _csrf_frontend = await ParserShedule.GetCsrfFrontend(loginGetResponseText);
             var content = new FormUrlEncodedContent(new[]
             {
                 new KeyValuePair<string, string>("_csrf-frontend", _csrf_frontend ),
-                new KeyValuePair<string, string>("LoginForm[username]", "ipz204_vvyu"),
-                new KeyValuePair<string, string>("LoginForm[password]", "665989"),
+                new KeyValuePair<string, string>("LoginForm[username]", userName),
+                new KeyValuePair<string, string>("LoginForm[password]", password),
                 new KeyValuePair<string, string>("LoginForm[rememberMe]", "1")
             });
-            HttpResponseMessage loginPostResponse = await httpClient.PostAsync(LoginPersonalAccount, content);
+            HttpResponseMessage loginPostResponse = await httpClient.PostAsync(LoginPersonalAccountUrl, content);
             string loginPostResponseText = await loginPostResponse.Content.ReadAsStringAsync();
             if (loginPostResponseText.Contains("Неправильний логін або пароль"))
                 return null;
             else
                 return loginPostResponse.Headers.GetValues("Set-Cookie"); ;
+        }
+
+        public static async Task<List<Subject>> GetScheduleForTomorrowAsync(string groupName, int subGroup)
+        {
+            HttpResponseMessage scheduleGroupResponse = await httpClient.GetAsync(RozkladGroupUrl + groupName);
+            string scheduleGroupResponseText = await scheduleGroupResponse.Content.ReadAsStringAsync();
+            return await ParserShedule.GetScheduleForTomorrowAsync(scheduleGroupResponseText, subGroup);
+        }
+
+        public static async Task<Dictionary<string, Dictionary<string, List<Subject>>>> GetScheduleForTwoWeeksAsync(string groupName, int subGroup)
+        {
+            HttpResponseMessage scheduleGroupResponse = await httpClient.GetAsync(RozkladGroupUrl + groupName);
+            string scheduleGroupResponseText = await scheduleGroupResponse.Content.ReadAsStringAsync();
+            return await ParserShedule.GetScheduleForTwoWeekAsync(scheduleGroupResponseText, subGroup); ;
         }
     }
 }

@@ -11,12 +11,17 @@ namespace ZTUPersonalAccount.Repositories
         {
             _ctx = ctx;
         }
-        public async Task<ChatModel> GetByChatId(long chatId)
+        public async Task<ChatModel> GetByChatIdAsync(long chatId)
         {
             return await _ctx.Chats.FirstOrDefaultAsync(c => c.ChatId == chatId);
         }
         
-        public async Task<ChatModel> Add(ChatModel chatModel)
+        public async Task<ChatModel> GetByChatIdIncludedPersonalAccountAsync(long chatId)
+        {
+            return await _ctx.Chats.Include(c => c.PersonalAccount).FirstOrDefaultAsync(c => c.ChatId == chatId);
+        }
+        
+        public async Task<ChatModel> AddAsync(ChatModel chatModel)
         {
             await _ctx.Chats.AddAsync(chatModel);
             await _ctx.SaveChangesAsync();

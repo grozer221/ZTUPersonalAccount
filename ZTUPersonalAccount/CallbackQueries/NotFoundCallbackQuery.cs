@@ -2,19 +2,16 @@
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using ZTUPersonalAccount.Client;
-using ZTUPersonalAccount.Commands;
 
 namespace ZTUPersonalAccount.CallbackQueries
 {
     public class NotFoundCallbackQuery : ICallbackQuery
     {
         private readonly ITelegramBotClient _telegramBotClient;
-        private readonly StartCommand _startCommand;
 
-        public NotFoundCallbackQuery(TelegramClient telegramClient, StartCommand startCommand)
+        public NotFoundCallbackQuery(TelegramClient telegramClient)
         {
             _telegramBotClient = telegramClient.GetInstance();
-            _startCommand = startCommand;
         }
 
         public async Task ExecuteAsync(CallbackQuery callbackQuery)

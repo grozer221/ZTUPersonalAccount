@@ -1,24 +1,24 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
 using Telegram.Bot.Types;
-using ZTUPersonalAccount.Commands;
 
-namespace ZTUPersonalAccount.CommandFactory
+namespace ZTUPersonalAccount.Commands
 {
-    public class TelegramCommandFactory
+    public class CommandFactory
     {
         private readonly IServiceProvider _serviceProvider;
 
-        public TelegramCommandFactory(IServiceProvider serviceProvider)
+        public CommandFactory(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider;
         }
 
-        public ICommand CreateCommand(Message command)
+        public ICommand CreateCommand(Message message)
         {
-            return command.Text switch
+            return message.Text switch
             {
                 "/start" => _serviceProvider.GetRequiredService<StartCommand>(),
+                "/login" => _serviceProvider.GetRequiredService<LoginCommand>(),
                 _ => _serviceProvider.GetRequiredService<StartCommand>()
             };
         }
